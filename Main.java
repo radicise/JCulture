@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Arrays;
 public class Main {
@@ -12,6 +14,7 @@ public class Main {
 	static final char[] symb5 = new char[]{' ', '-', '+', 'W', '\u2588', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 	static char[] dig = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	static char[] symb;
+	static char[][] esc = new char[][]{new char[]{'\u001b', '[', '3', '7', 'm'}, new char[]{'\u001b', '[', '9', '1', 'm'}, new char[]{'\u001b', '[', '9', '4', 'm'}};
 	static final int wm = width - 1;
 	static final int hm = height - 1;
 	static final BufferedWriter buffered = new BufferedWriter(new PrintWriter(System.out, false));
@@ -26,24 +29,44 @@ public class Main {
 	static int vC;
 	static int vL;
 	public static void main(String[] args) throws Exception {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				System.out.print("\u001b[0m");
+			}
+		});
 		symb = symb5;
-		//board = new int[]{2, 3, 3, 3, 3, 3, 3, 2, 3, 4, 4, 4, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 3, 2, 3, 3, 3, 3, 3, 3, 2};
 		board = new int[width * height];
 		Arrays.fill(board, 1);
 		Arrays.fill(teams, Team.GREY);
-		on = Team.RED;
-		off = Team.BLUE;
-		for (int n = 0; n > -1; n++) {
-			place(0, 0);
-			Thread.sleep(100);
+		on = Team.BLUE;
+		off = Team.RED;
+		boolean k;
+		String tS[];
+		BufferedReader bReader = new BufferedReader(new InputStreamReader(System.in));
+		while (true) {
 			display();
-			System.out.println(n);
+			if (on == Team.RED) {
+				on = Team.BLUE;
+				off = Team.RED;
+				System.out.println("\u001b[94mBlue Player's Turn");
+			}
+			else {
+				on = Team.RED;
+				off = Team.BLUE;
+				System.out.println("\u001b[91mRed Player's Turn");
+			}
+			k = false;
+			while (!k) {
+				tS = bReader.readLine().split(",");
+				k = place(Integer.valueOf(tS[0]), Integer.valueOf(tS[1]));
+			}
 		}
 	}
 	static boolean place(int x, int y) {
-		if (teams[(y * width) + x] == off) {
+		if (teams[(y * width) + x].equals(off)) {
 			return false;
 		}
+		teams[(y * width) + x] = on;
 		board[(y * width) + x]++;
 		upd(x, y);
 		return true;
@@ -125,7 +148,7 @@ public class Main {
 			vC = 0;
 			while (vC < width) {
 				buffered.write(' ');
-				buffered.write(dig[teams[vP].ordinal()]);
+				buffered.write(esc[teams[vP].ordinal()]);
 				buffered.write(symb[board[vP]]);
 				vP++;
 				vC++;
