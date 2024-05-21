@@ -4,8 +4,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.Arrays;
 public class Main {
-	static final int width = 8;
-	static final int height = 8;
+	static int width = 8;
+	static int height = 8;
 	static final char[] symb0 = new char[]{' ', '\u00b7', '\u205a', '\u2056', '\u2058'};
 	static final char[] symb1 = new char[]{' ', '\u2606', '\u272f', '\u2605', '\u272a'};
 	static final char[] symb2 = new char[]{' ', '-', '\u2591', '\u2592', '\u2588'};
@@ -14,21 +14,28 @@ public class Main {
 	static final char[] symb5 = new char[]{' ', '-', '+', 'W', '\u2588', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 	static char[] dig = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	static char[] symb;
-	static char[][] esc = new char[][]{new char[]{'\u001b', '[', '3', '7', 'm'}, new char[]{'\u001b', '[', '9', '1', 'm'}, new char[]{'\u001b', '[', '9', '4', 'm'}};
-	static final int wm = width - 1;
-	static final int hm = height - 1;
+	static char[][] esc = new char[][]{new char[]{'\u001b', '[', '3', '7', 'm'}, new char[]{'\u001b', '[', '9', '1', 'm'}, new char[]{'\u001b', '[', '9', '4', 'm'}, new char[]{'\u001b', '[', '9', '2', 'm'}};
+	static int wm = width - 1;
+	static int hm = height - 1;
 	static final BufferedWriter buffered = new BufferedWriter(new PrintWriter(System.out, false));
 	static int[] board;
-	enum Team {
-		GREY, RED, BLUE
-	}
-	static Team[] teams = new Team[width * height];
-	static Team on;
-	static Team off;
+	static int[] teams;
+	static int numTeams = 2;
 	static int vP;
 	static int vC;
 	static int vL;
+	static int ct = 2;
 	public static void main(String[] args) throws Exception {
+		if (args.length >= 1) {
+			ct = numTeams = Integer.valueOf(args[0]);
+		}
+		if (args.length >= 3) {
+			width = Integer.valueOf(args[1]);
+			height = Integer.valueOf(args[2]);
+			wm = width - 1;
+			hm = height - 1;
+		}
+		teams = new int[width * height];
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			public void run() {
 				System.out.print("\u001b[0m");
@@ -37,36 +44,46 @@ public class Main {
 		symb = symb5;
 		board = new int[width * height];
 		Arrays.fill(board, 1);
-		Arrays.fill(teams, Team.GREY);
-		on = Team.BLUE;
-		off = Team.RED;
+		Arrays.fill(teams, 0);
 		boolean k;
 		String tS[];
 		BufferedReader bReader = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
 			display();
-			if (on == Team.RED) {
-				on = Team.BLUE;
-				off = Team.RED;
-				System.out.println("\u001b[94mBlue Player's Turn");
-			}
-			else {
-				on = Team.RED;
-				off = Team.BLUE;
-				System.out.println("\u001b[91mRed Player's Turn");
-			}
+			ct = (ct % numTeams) + 1;
+			buffered.write(esc[ct]);
+			buffered.flush();
+			System.out.print("Player ");
+			System.out.print(ct);
+			System.out.println("\'s turn");
 			k = false;
 			while (!k) {
-				tS = bReader.readLine().split(",");
-				k = place(Integer.valueOf(tS[0]), Integer.valueOf(tS[1]));
+				int i;
+				int j;
+				while (true) {
+					tS = bReader.readLine().split(",");
+					if (tS.length != 2) {
+						continue;
+					}
+					try {
+						i = Integer.valueOf(tS[0]);
+						j = Integer.valueOf(tS[1]);
+					}
+					catch (NumberFormatException E) {
+						continue;
+					}
+					break;
+				}
+				k = place(i, j);
 			}
 		}
 	}
 	static boolean place(int x, int y) {
-		if (teams[(y * width) + x].equals(off)) {
+		int pt = teams[(y * width) + x];
+		if ((pt != 0) && (pt != ct)) {
 			return false;
 		}
-		teams[(y * width) + x] = on;
+		teams[(y * width) + x] = ct;
 		board[(y * width) + x]++;
 		upd(x, y);
 		return true;
@@ -96,19 +113,19 @@ public class Main {
 			board[pos] -= max;
 			if (!top) {
 				board[ab]++;
-				teams[ab] = on;
+				teams[ab] = ct;
 			}
 			if (!left) {
 				board[lef]++;
-				teams[lef] = on;
+				teams[lef] = ct;
 			}
 			if (!right) {
 				board[rig]++;
-				teams[rig] = on;
+				teams[rig] = ct;
 			}
 			if (!bottom) {
 				board[bel]++;
-				teams[bel] = on;
+				teams[bel] = ct;
 			}
 			doT = false;
 			doL = false;
@@ -148,7 +165,7 @@ public class Main {
 			vC = 0;
 			while (vC < width) {
 				buffered.write(' ');
-				buffered.write(esc[teams[vP].ordinal()]);
+				buffered.write(esc[teams[vP]]);
 				buffered.write(symb[board[vP]]);
 				vP++;
 				vC++;
