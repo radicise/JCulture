@@ -25,10 +25,15 @@ public class Main {
 	static int vC;
 	static int vL;
 	static int ct = 2;
+	static boolean teamOff[];
+	static boolean tt[];
+	static boolean win = false;
 	public static void main(String[] args) throws Exception {
 		if (args.length >= 1) {
 			ct = numTeams = Integer.valueOf(args[0]);
 		}
+		teamOff = new boolean[numTeams];
+		tt = new boolean[numTeams];
 		if (args.length >= 3) {
 			width = Integer.valueOf(args[1]);
 			height = Integer.valueOf(args[2]);
@@ -49,8 +54,14 @@ public class Main {
 		String tS[];
 		BufferedReader bReader = new BufferedReader(new InputStreamReader(System.in));
 		while (true) {
-			display();
 			ct = (ct % numTeams) + 1;
+			if (teamOff[ct - 1]) {
+				continue;
+			}
+			display();
+			if (win) {
+				System.exit(0);
+			}
 			buffered.write(esc[ct]);
 			buffered.flush();
 			System.out.print("Player ");
@@ -72,6 +83,9 @@ public class Main {
 					catch (NumberFormatException E) {
 						continue;
 					}
+					if ((i < 0) || (i >= width) || (j < 0) || (j >= height)) {
+						continue;
+					}
 					break;
 				}
 				k = place(i, j);
@@ -86,10 +100,21 @@ public class Main {
 		teams[(y * width) + x] = ct;
 		board[(y * width) + x]++;
 		upd(x, y);
+		for (int i = 0; i < tt.length; i++) {
+			tt[i] = true;
+		}
+		for (int t : teams) {
+			if (t == 0) {
+				return true;
+			}
+			tt[t - 1] = false;
+		}
+		for (int i = 0; i < teamOff.length; i++) {
+			if (tt[i]) {
+				teamOff[i] = true;
+			}
+		}
 		return true;
-	}
-	static void set(int x, int y, int val) {
-		board[(width * y) + x] = val;
 	}
 	static int max(int x , int y) {
 		return (4 - (y == 0 ? 1 : 0) - (y == (hm) ? 1 : 0) - (x == 0 ? 1 : 0) - (x == (wm) ? 1 : 0));
@@ -109,23 +134,43 @@ public class Main {
 		int rig = pos + 1;
 		int bel = pos + width;
 		int max = (4 - (top ? 1 : 0) - (bottom ? 1 : 0) - (left ? 1 : 0) - (right ? 1 : 0));
+		if (board[pos] >  max) {
+			if (!top) {
+				teams[ab] = ct;
+			}
+			if (!left) {
+				teams[lef] = ct;
+			}
+			if (!right) {
+				teams[rig] = ct;
+			}
+			if (!bottom) {
+				teams[bel] = ct;
+			}
+		}
+		boolean won = true;
+		for (int i : teams) {
+			if (i != ct) {
+				won = false;
+			}
+		}
+		if (won) {
+			win = true;
+			return;
+		}
 		while (board[pos] > max) {
 			board[pos] -= max;
 			if (!top) {
 				board[ab]++;
-				teams[ab] = ct;
 			}
 			if (!left) {
 				board[lef]++;
-				teams[lef] = ct;
 			}
 			if (!right) {
 				board[rig]++;
-				teams[rig] = ct;
 			}
 			if (!bottom) {
 				board[bel]++;
-				teams[bel] = ct;
 			}
 			doT = false;
 			doL = false;
@@ -145,15 +190,27 @@ public class Main {
 			}
 			if (doT) {
 				upd(x, y - 1);
+				if (win) {
+					return;
+				}
 			}
 			if (doL) {
 				upd(x - 1, y);
+				if (win) {
+					return;
+				}
 			}
 			if (doR) {
 				upd(x + 1, y);
+				if (win) {
+					return;
+				}
 			}
 			if (doB) {
 				upd(x, y + 1);
+				if (win) {
+					return;
+				}
 			}
 		}
 	}
@@ -166,7 +223,12 @@ public class Main {
 			while (vC < width) {
 				buffered.write(' ');
 				buffered.write(esc[teams[vP]]);
-				buffered.write(symb[board[vP]]);
+				if (board[vP] >= symb.length) {
+					buffered.write((int) 'X');
+				}
+				else {
+					buffered.write(symb[board[vP]]);
+				}
 				vP++;
 				vC++;
 			}
